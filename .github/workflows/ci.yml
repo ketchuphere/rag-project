@@ -63,6 +63,11 @@ jobs:
             rag-project:${{ github.sha }} \
             python -c "from app.config.settings import CHUNK_SIZE; print('OK')"
 
+permissions:
+contents: read
+packages: write
+
+jobs:
   deploy-staging:
     name: Deploy to staging
     runs-on: ubuntu-latest
@@ -71,7 +76,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Log in to container registry
-        run: echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Push image
         run: |
           docker tag rag-project:${{ github.sha }} ghcr.io/${{ github.repository }}:latest
