@@ -279,9 +279,12 @@ class TestRetrieval:
 
 class TestGeneration:
     def _make_llm(self, providers):
+        import uuid
         from app.services.generation.llm_factory import FailoverLLMWrapper, _Provider
+        suffix = uuid.uuid4().hex[:6]
         wrapped = []
         for name, fail, msg in providers:
+            unique_name = f"{name}-{suffix}"
             class M:
                 def __init__(self, n, f, m):
                     self.n = n
@@ -297,7 +300,7 @@ class TestGeneration:
                     if self.f:
                         raise Exception(self.m)
                     return AIMessage(content=f"async from {self.n}")
-            wrapped.append(_Provider(name, M(name, fail, msg)))
+            wrapped.append(_Provider(unique_name, M(unique_name, fail, msg)))
         return FailoverLLMWrapper(wrapped)
 
     def test_n_provider_chain_primary(self):
@@ -344,7 +347,7 @@ class TestGeneration:
         llm = self._make_llm([("Gemini",False,""),("Groq",False,"")])
         llm.invoke("test")
         report = llm.latency_report()
-        assert "Gemini" in report or "Groq" in report
+        assert any("Gemini" in k or "Groq" in k for k in report)
         print(f"  ✓ latency_report: {report}")
 
     def test_async_ainvoke(self):
