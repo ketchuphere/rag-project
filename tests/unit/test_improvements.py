@@ -3,7 +3,11 @@ Unit tests covering all implemented improvements.
 Run: pytest tests/unit/test_improvements.py -v
 """
 
-import sys, os, io, json, time, unittest.mock as mock
+import sys
+import os
+import io
+import time
+import unittest.mock as mock
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from langchain_core.documents import Document
@@ -279,19 +283,26 @@ class TestGeneration:
         wrapped = []
         for name, fail, msg in providers:
             class M:
-                def __init__(self, n, f, m): self.n=n; self.f=f; self.m=m
+                def __init__(self, n, f, m):
+                    self.n = n
+                    self.f = f
+                    self.m = m
+
                 def invoke(self, p, **kw):
-                    if self.f: raise Exception(self.m)
+                    if self.f:
+                        raise Exception(self.m)
                     return AIMessage(content=f"from {self.n}")
+
                 async def ainvoke(self, p, **kw):
-                    if self.f: raise Exception(self.m)
+                    if self.f:
+                        raise Exception(self.m)
                     return AIMessage(content=f"async from {self.n}")
             wrapped.append(_Provider(name, M(name, fail, msg)))
         return FailoverLLMWrapper(wrapped)
 
     def test_n_provider_chain_primary(self):
         llm = self._make_llm([("Gemini",False,""),("Groq",False,""),("Claude",False,"")])
-        r = llm.invoke("hi")
+        llm.invoke("hi")
         assert llm.fallback_count == 0
         print(f"  ✓ N-provider: primary used, fallback_count={llm.fallback_count}")
 
@@ -352,7 +363,7 @@ class TestGeneration:
             return await llm.ainvoke("async failover")
         result = asyncio.run(run())
         assert "Groq" in result.content
-        print(f"  ✓ async failover: Gemini 429 → Groq (async)")
+        print("  ✓ async failover: Gemini 429 → Groq (async)")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -380,7 +391,7 @@ class TestEvaluation:
         from app.services.evaluation.grader import verify_evidence, query_eval_log
         verify_evidence(self.VerifyLLM(), "q", "plan", "ctx", ["s"], experiment_id="test_verify_789")
         logs = query_eval_log(experiment_id="test_verify_789", limit=5)
-        assert any(l["event"] == "verify_evidence" for l in logs)
+        assert any(log["event"] == "verify_evidence" for log in logs)
         print("  ✓ verify_evidence logged to SQLite")
 
     def test_ragas_metrics_returns_three_scores(self):
@@ -400,9 +411,9 @@ class TestEvaluation:
         unique_id = f"ragas_log_{uuid.uuid4().hex[:8]}"
         compute_ragas_metrics(self.ScoreLLM(), "q", "ans", "ctx", experiment_id=unique_id)
         logs = query_eval_log(experiment_id=unique_id, limit=10)
-        ragas_events = [l for l in logs if l["event"].startswith("ragas_")]
+        ragas_events = [log for log in logs if log["event"].startswith("ragas_")]
         assert len(ragas_events) == 3, f"Expected 3 RAGAS events, got {len(ragas_events)}"
-        event_names = {l["event"] for l in ragas_events}
+        event_names = {log["event"] for log in ragas_events}
         assert event_names == {"ragas_faithfulness", "ragas_answer_relevancy", "ragas_context_precision"}
         print(f"  ✓ All 3 RAGAS events logged: {sorted(event_names)}")
 
@@ -413,8 +424,8 @@ class TestEvaluation:
         grade_relevance(self.ScoreLLM(), "q", "rq", docs, experiment_id="exp_B_999")
         logs_a = query_eval_log(experiment_id="exp_A_999")
         logs_b = query_eval_log(experiment_id="exp_B_999")
-        assert all(l["experiment_id"] == "exp_A_999" for l in logs_a)
-        assert all(l["experiment_id"] == "exp_B_999" for l in logs_b)
+        assert all(log["experiment_id"] == "exp_A_999" for log in logs_a)
+        assert all(log["experiment_id"] == "exp_B_999" for log in logs_b)
         print("  ✓ A/B experiment isolation: each experiment_id filtered independently")
 
     def test_boundary_fix(self):
@@ -432,7 +443,8 @@ class TestEvaluation:
 class TestVectorStore:
     def test_list_collections(self):
         with mock.patch('app.services.vector_store.chroma_store._get_client') as mc:
-            col = mock.MagicMock(); col.name = "session_abc"
+            col = mock.MagicMock()
+            col.name = "session_abc"
             mc.return_value.list_collections.return_value = [col]
             from app.services.vector_store.chroma_store import list_collections
             cols = list_collections()
@@ -459,7 +471,7 @@ class TestVectorStore:
             new_chunk = Document(page_content="brand new content xyz 999", metadata={})
             added = upsert_documents(vs, [existing_chunk, new_chunk])
             assert added == 1, f"Expected 1 new chunk, got {added}"
-            print(f"  ✓ upsert: 2 chunks submitted, 1 new added (1 duplicate skipped)")
+            print("  ✓ upsert: 2 chunks submitted, 1 new added (1 duplicate skipped)")
 
     def test_upsert_empty_returns_zero(self):
         from app.services.vector_store.chroma_store import upsert_documents
@@ -469,7 +481,8 @@ class TestVectorStore:
     def test_cleanup_stale_collections(self):
         with mock.patch('app.services.vector_store.chroma_store._get_client') as mc:
             old_ts = time.time() - 48 * 3600  # 48h ago
-            col = mock.MagicMock(); col.name = "old_session"
+            col = mock.MagicMock()
+            col.name = "old_session"
             stale_col = mock.MagicMock()
             stale_col.get.return_value = {"metadatas": [{"created_at": old_ts}]}
             mc.return_value.list_collections.return_value = [col]
@@ -486,7 +499,6 @@ class TestVectorStore:
 
 class TestSupervisorAgent:
     def _base_state(self, llm):
-        from langchain_core.documents import Document
         return {
             "question":"What is AI?", "rewritten_question":"artificial intelligence",
             "vectorstore":None, "llm":llm,
@@ -502,7 +514,8 @@ class TestSupervisorAgent:
 
     def test_supervisor_routes_to_answer(self):
         class AnswerLLM:
-            current_provider="X"; fallback_count=0
+            current_provider = "X"
+            fallback_count = 0
             def invoke(self, p, **kw): return AIMessage(content="answer")
         from app.services.agents.graph import supervisor_agent, route_supervisor
         s = supervisor_agent(self._base_state(AnswerLLM()))
@@ -512,7 +525,8 @@ class TestSupervisorAgent:
 
     def test_supervisor_routes_to_web_search(self):
         class WebLLM:
-            current_provider="X"; fallback_count=0
+            current_provider = "X"
+            fallback_count = 0
             def invoke(self, p, **kw): return AIMessage(content="web_search")
         from app.services.agents.graph import supervisor_agent, route_supervisor
         state = self._base_state(WebLLM())
@@ -523,7 +537,8 @@ class TestSupervisorAgent:
 
     def test_supervisor_graceful_on_llm_error(self):
         class FailLLM:
-            current_provider="X"; fallback_count=0
+            current_provider = "X"
+            fallback_count = 0
             def invoke(self, p, **kw): raise Exception("LLM error")
         from app.services.agents.graph import supervisor_agent, route_supervisor
         s = supervisor_agent(self._base_state(FailLLM()))

@@ -16,14 +16,12 @@ Future improvements:
     partial responses as they are generated.
 """
 
-import os
 import re
 import uuid
 from html import escape
 
 import streamlit as st
 
-from app.config.settings import GOOGLE_API_KEY
 from app.services.ingestion.pdf_loader import load_pdfs
 from app.services.chunking.text_splitter import split_documents
 from app.services.vector_store.chroma_store import build_vectorstore, delete_collection
@@ -42,6 +40,7 @@ SMALL_TALK: dict[str, str] = {
 }
 
 
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _normalise(text: str) -> str:
     return re.sub(r"[^a-zA-Z\s]", "", text).strip().lower()
@@ -176,6 +175,7 @@ def reset_documents():
     st.session_state.index_status = "No documents indexed"
 
 
+# ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
     st.set_page_config(page_title="Agentic Research Assistant", page_icon=":books:")

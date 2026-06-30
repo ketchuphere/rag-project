@@ -2,13 +2,13 @@
 Retrieval service — four complementary strategies behind a single retrieve() call.
 
 Improvements implemented:
-     Cross-encoder re-ranking: ms-marco-MiniLM-L-6-v2 cross-encoder scores
+  ✅ Cross-encoder re-ranking: ms-marco-MiniLM-L-6-v2 cross-encoder scores
      candidate (query, passage) pairs for higher precision than keyword overlap.
-     Maximal Marginal Relevance (MMR): diversifies results by penalising
+  ✅ Maximal Marginal Relevance (MMR): diversifies results by penalising
      chunks too similar to already-selected ones (via cosine similarity).
-     HyDE query expansion: the LLM generates a hypothetical answer which is
+  ✅ HyDE query expansion: the LLM generates a hypothetical answer which is
      embedded as the actual retrieval query — improves recall on abstract questions.
-     Keyword overlap re-ranking retained as a lightweight fallback when
+  ✅ Keyword overlap re-ranking retained as a lightweight fallback when
      cross-encoder is unavailable.
 """
 
@@ -19,6 +19,7 @@ from langchain_core.documents import Document
 from app.config.settings import RETRIEVAL_K, RERANK_TOP_K, DEEP_RESEARCH_PDF_RESULTS
 
 
+# ── Source formatting ─────────────────────────────────────────────────────────
 
 def _format_sources(docs: list[Document]) -> list[str]:
     seen: set[str] = set()
@@ -31,6 +32,7 @@ def _format_sources(docs: list[Document]) -> list[str]:
     return sources
 
 
+# ── Strategy 1: Keyword overlap (lightweight fallback) ────────────────────────
 
 def _keyword_overlap(question: str, doc: Document) -> int:
     q_terms = set(re.findall(r"\w+", question.lower()))
@@ -42,6 +44,7 @@ def _rerank_keyword(question: str, docs: list[Document], top_k: int) -> list[Doc
     return sorted(docs, key=lambda d: _keyword_overlap(question, d), reverse=True)[:top_k]
 
 
+# ── Strategy 2: Cross-encoder re-ranking ─────────────────────────────────────
 
 def _rerank_cross_encoder(
     query: str, docs: list[Document], top_k: int
@@ -62,6 +65,7 @@ def _rerank_cross_encoder(
         return _rerank_keyword(query, docs, top_k)
 
 
+# ── Strategy 3: MMR diversification ─────────────────────────────────────────
 
 def _cosine_sim(a: list[float], b: list[float]) -> float:
     dot = sum(x * y for x, y in zip(a, b))
@@ -139,6 +143,7 @@ def retrieve_mmr(
     return candidates, relevant, _format_sources(relevant)
 
 
+# ── Strategy 4: HyDE query expansion ─────────────────────────────────────────
 
 def retrieve_hyde(
     vectorstore,
@@ -167,6 +172,7 @@ def retrieve_hyde(
     return candidates, relevant, _format_sources(relevant)
 
 
+# ── Default retrieve (cross-encoder with keyword fallback) ────────────────────
 
 def retrieve(
     vectorstore,

@@ -3,19 +3,18 @@ Agents service — LangGraph graph compilation with human-in-the-loop,
 Redis checkpointing, SSE streaming, and a supervisor agent.
 
 Improvements implemented:
-   Human-in-the-loop: interrupt_after="research_agent" lets users review
+  ✅ Human-in-the-loop: interrupt_after="research_agent" lets users review
      and approve the research plan before evidence gathering continues.
-   Checkpointing: MemorySaver (in-process) by default; RedisSaver when
+  ✅ Checkpointing: MemorySaver (in-process) by default; RedisSaver when
      REDIS_URL is set — Deep Research sessions survive restarts.
-  SSE streaming: stream_rag() and stream_deep_research() async generators
+  ✅ SSE streaming: stream_rag() and stream_deep_research() async generators
      yield (node_name, partial_state) tuples for real-time UI updates.
-   Supervisor agent: dynamically decides which sub-agent to call next
+  ✅ Supervisor agent: dynamically decides which sub-agent to call next
      based on LLM judgment rather than hardcoded conditional edges.
 """
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 from typing import AsyncGenerator
@@ -43,6 +42,7 @@ from app.services.agents.nodes import (
 logger = logging.getLogger(__name__)
 
 
+# ── Checkpointer factory ──────────────────────────────────────────────────────
 
 def _make_checkpointer():
     """
@@ -62,6 +62,7 @@ def _make_checkpointer():
 _checkpointer = _make_checkpointer()
 
 
+# ── Supervisor agent node ─────────────────────────────────────────────────────
 
 def supervisor_agent(state: RAGState) -> RAGState:
     """
@@ -109,6 +110,7 @@ def route_supervisor(state: RAGState) -> str:
     return state.get("next_action", "answer")
 
 
+# ── Standard RAG graph ────────────────────────────────────────────────────────
 
 def _build_rag_graph(with_hitl: bool = False):
     g = StateGraph(RAGState)
@@ -139,6 +141,7 @@ def _build_rag_graph(with_hitl: bool = False):
     return g.compile(checkpointer=_checkpointer, interrupt_after=interrupt_nodes)
 
 
+# ── Deep Research graph ───────────────────────────────────────────────────────
 
 def _build_deep_research_graph(with_hitl: bool = False):
     g = StateGraph(RAGState)
@@ -173,6 +176,7 @@ deep_research_graph = _build_deep_research_graph()
 deep_research_graph_hitl = _build_deep_research_graph(with_hitl=True)
 
 
+# ── Initial state factory ─────────────────────────────────────────────────────
 
 def _initial_state(question, vectorstore, llm, chat_history, conversation_memory=None) -> dict:
     return {
@@ -201,6 +205,7 @@ def _initial_state(question, vectorstore, llm, chat_history, conversation_memory
     }
 
 
+# ── Synchronous runners ───────────────────────────────────────────────────────
 
 def run_rag_graph(question, vectorstore, llm, chat_history,
                   conversation_memory=None, thread_id: str = "default") -> dict:
@@ -220,6 +225,7 @@ def run_deep_research_graph(question, vectorstore, llm, chat_history,
     )
 
 
+# ── SSE streaming runners ─────────────────────────────────────────────────────
 
 async def stream_rag(
     question: str, vectorstore, llm, chat_history: list,

@@ -3,17 +3,16 @@ Vector store service — ChromaDB with persistent storage, multi-tenant
 namespacing, and incremental upsert.
 
 Improvements implemented:
-     Persistent managed store: data/vector_store/ on disk so indexed documents
+  ✅ Persistent managed store: data/vector_store/ on disk so indexed documents
      survive server restarts (replaces EphemeralClient).
-     Multi-tenant namespacing: each session gets its own collection; TTL-based
+  ✅ Multi-tenant namespacing: each session gets its own collection; TTL-based
      cleanup removes stale collections older than COLLECTION_TTL_HOURS.
-     Incremental upsert: add new chunks to an existing collection without
+  ✅ Incremental upsert: add new chunks to an existing collection without
      re-embedding the full corpus (deduplicates by chunk fingerprint).
 """
 
 from __future__ import annotations
 
-import json
 import re
 import time
 from hashlib import sha256
@@ -25,6 +24,7 @@ from langchain_core.documents import Document
 
 from app.services.embeddings.embedder import get_embeddings
 
+# ── Config ────────────────────────────────────────────────────────────────────
 
 _STORE_PATH = Path(__file__).resolve().parents[4] / "data" / "vector_store"
 COLLECTION_TTL_HOURS: float = 24.0  # collections older than this are eligible for cleanup
@@ -40,6 +40,7 @@ def _fingerprint(text: str) -> str:
     return sha256(re.sub(r"\s+", " ", text.strip().lower()).encode()).hexdigest()
 
 
+# ── Build / open ──────────────────────────────────────────────────────────────
 
 def build_vectorstore(
     chunks: list[Document],
@@ -95,6 +96,7 @@ def open_vectorstore(collection_name: str) -> Chroma | None:
     )
 
 
+# ── Incremental upsert ────────────────────────────────────────────────────────
 
 def upsert_documents(
     vectorstore: Chroma,
@@ -135,6 +137,7 @@ def upsert_documents(
     return len(to_add)
 
 
+# ── Multi-tenant TTL cleanup ──────────────────────────────────────────────────
 
 def _stamp_collection(client: chromadb.PersistentClient, name: str) -> None:
     """Store a creation timestamp in a sentinel document in the collection."""

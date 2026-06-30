@@ -2,7 +2,9 @@
 Integration tests – RAG graph end-to-end with mocked LLM and vectorstore.
 Uses thread_id isolation so MemorySaver checkpointer serialises cleanly.
 """
-import sys, os, unittest.mock as mock
+import sys
+import os
+import unittest.mock as mock
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from langchain_core.documents import Document

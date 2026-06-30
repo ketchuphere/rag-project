@@ -3,9 +3,9 @@ FastAPI backend routes — replaces Streamlit as the backend so the React
 frontend can talk to a proper REST + SSE API.
 
 Improvements implemented:
-  FastAPI backend: /query, /deep-research, /stream/query (SSE),
+  ✅ FastAPI backend: /query, /deep-research, /stream/query (SSE),
      /upload, /collections, /metrics, /eval endpoints.
-   Prometheus metrics: fallback_count, latency histogram, relevance gauge
+  ✅ Prometheus metrics: fallback_count, latency histogram, relevance gauge
      exposed at /metrics for scraping.
 """
 
@@ -22,6 +22,7 @@ from pydantic import BaseModel
 router = APIRouter()
 
 
+# ── Request / response models ─────────────────────────────────────────────────
 
 class QueryRequest(BaseModel):
     question: str
@@ -47,6 +48,7 @@ class MetricsResponse(BaseModel):
     total_queries: int
 
 
+# ── Lazy session store (in-memory; replace with Redis for production) ──────────
 
 _sessions: dict[str, dict] = {}
 
@@ -57,6 +59,7 @@ def _get_session(session_id: str) -> dict:
     return _sessions[session_id]
 
 
+# ── Upload endpoint ───────────────────────────────────────────────────────────
 
 @router.post("/upload", summary="Upload and index PDF documents")
 async def upload_documents(files: list[UploadFile] = File(...)):
@@ -111,6 +114,7 @@ async def upload_documents(files: list[UploadFile] = File(...)):
     }
 
 
+# ── Query endpoint ────────────────────────────────────────────────────────────
 
 @router.post("/query", response_model=QueryResponse, summary="Ask a question about uploaded documents")
 async def query(req: QueryRequest):
@@ -139,6 +143,7 @@ async def query(req: QueryRequest):
     )
 
 
+# ── Deep Research endpoint ────────────────────────────────────────────────────
 
 @router.post("/deep-research", summary="Run Deep Research mode")
 async def deep_research(req: QueryRequest):
@@ -166,6 +171,7 @@ async def deep_research(req: QueryRequest):
     }
 
 
+# ── SSE streaming endpoint ────────────────────────────────────────────────────
 
 @router.get("/stream/query", summary="Stream RAG query via Server-Sent Events")
 async def stream_query(question: str, session_id: str = ""):
@@ -204,6 +210,7 @@ async def stream_query(question: str, session_id: str = ""):
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
+# ── Evaluation endpoints ──────────────────────────────────────────────────────
 
 @router.get("/eval", summary="Retrieve evaluation traces")
 async def get_eval_traces(experiment_id: str = "", limit: int = 50):
@@ -218,6 +225,7 @@ async def list_collections():
     return {"collections": _list()}
 
 
+# ── Prometheus metrics endpoint ───────────────────────────────────────────────
 
 @router.get("/metrics", summary="Prometheus-compatible metrics")
 async def prometheus_metrics():
@@ -245,9 +253,8 @@ async def prometheus_metrics():
     lines.append(f"rag_queries_total {total_queries}")
 
     for provider, lat in latencies.items():
-        safe_name = provider.lower().replace("-", "_")
         lines.append(f"# HELP rag_provider_latency_seconds EMA latency for {provider}")
-        lines.append(f"# TYPE rag_provider_latency_seconds gauge")
+        lines.append("# TYPE rag_provider_latency_seconds gauge")
         lines.append(f'rag_provider_latency_seconds{{provider="{provider}"}} {lat:.4f}')
 
     return StreamingResponse(

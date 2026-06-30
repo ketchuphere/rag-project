@@ -2,12 +2,12 @@
 Chunking service — three strategies behind a unified split_documents() entry point.
 
 Improvements implemented:
-  Semantic chunking: splits on sentence boundaries using nltk.sent_tokenize
+  ✅ Semantic chunking: splits on sentence boundaries using nltk.sent_tokenize
      so chunk boundaries never cut mid-sentence.
-  Sliding-window chunking: configurable window_size / stride for dense retrieval.
-  Pre-index SHA-256 deduplication: identical chunks are removed before
+  ✅ Sliding-window chunking: configurable window_size / stride for dense retrieval.
+  ✅ Pre-index SHA-256 deduplication: identical chunks are removed before
      they reach the embedding model.
-   Original recursive-character splitter retained as the default strategy.
+  ✅ Original recursive-character splitter retained as the default strategy.
 """
 
 from __future__ import annotations
@@ -22,6 +22,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from app.config.settings import CHUNK_SIZE, CHUNK_OVERLAP
 
 
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _fingerprint(text: str) -> str:
     return sha256(re.sub(r"\s+", " ", text.strip().lower()).encode()).hexdigest()
@@ -51,6 +52,7 @@ def _dedup(chunks: list[Document]) -> list[Document]:
     return unique
 
 
+# ── Strategy 1: Recursive character (default) ─────────────────────────────────
 
 def split_recursive(
     documents: list[Document],
@@ -69,6 +71,7 @@ def split_recursive(
     return _add_chunk_index(_dedup(splitter.split_documents(documents)))
 
 
+# ── Strategy 2: Semantic (sentence-boundary) ──────────────────────────────────
 
 def split_semantic(
     documents: list[Document],
@@ -120,6 +123,7 @@ def split_semantic(
     return _dedup(chunks)
 
 
+# ── Strategy 3: Sliding-window ────────────────────────────────────────────────
 
 def split_sliding_window(
     documents: list[Document],
@@ -162,6 +166,7 @@ def split_sliding_window(
     return _dedup(chunks)
 
 
+# ── Unified entry point ───────────────────────────────────────────────────────
 
 def split_documents(
     documents: list[Document],

@@ -2,22 +2,22 @@
 Ingestion service – streaming PDF loader.
 
 Improvements implemented:
-   Streaming ingestion: pages yielded one-by-one via a generator,
+  ✅ Streaming ingestion: pages yielded one-by-one via a generator,
      so large PDFs never load fully into memory.
-   Multimodal extraction: embedded images extracted per page and stored
+  ✅ Multimodal extraction: embedded images extracted per page and stored
      as base64 blobs in Document metadata for vision-capable pipelines.
 """
 
 from __future__ import annotations
 
 import base64
-import io
 from typing import Generator
 
 from PyPDF2 import PdfReader
 from langchain_core.documents import Document
 
 
+# ── Streaming loader ──────────────────────────────────────────────────────────
 
 def stream_pdf_pages(pdf_file) -> Generator[Document, None, None]:
     """
@@ -38,6 +38,7 @@ def stream_pdf_pages(pdf_file) -> Generator[Document, None, None]:
         if not text.strip():
             continue
 
+        # ── Multimodal: extract embedded images ───────────────────────────────
         images: list[str] = []
         if hasattr(page, "images"):
             for img_obj in page.images:

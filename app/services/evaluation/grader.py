@@ -3,11 +3,11 @@ Evaluation service — relevance grading, evidence verification, RAGAS metrics,
 SQLite evaluation logging, and A/B testing hooks.
 
 Improvements implemented:
-    RAGAS metrics: faithfulness, answer_relevancy, context_precision
+  ✅ RAGAS metrics: faithfulness, answer_relevancy, context_precision
      computed as lightweight LLM-based proxies (no external ragas library required).
-     Evaluation logging: every grading and verification result persisted to
+  ✅ Evaluation logging: every grading and verification result persisted to
      SQLite at data/eval_log.db for offline benchmarking.
-     A/B testing hooks: runs tagged with an experiment_id so different
+  ✅ A/B testing hooks: runs tagged with an experiment_id so different
      retrieval strategies can be compared from stored traces.
 """
 
@@ -21,8 +21,9 @@ import uuid
 from pathlib import Path
 from langchain_core.documents import Document
 
-from app.config.settings import RELEVANCE_THRESHOLD, MIN_RESEARCH_CONFIDENCE
+from app.config.settings import RELEVANCE_THRESHOLD
 
+# ── SQLite eval log ───────────────────────────────────────────────────────────
 
 _DB_PATH = Path(__file__).resolve().parents[4] / "data" / "eval_log.db"
 
@@ -101,12 +102,14 @@ def query_eval_log(experiment_id: str | None = None, limit: int = 100) -> list[d
         return []
 
 
+# ── Score parsing ─────────────────────────────────────────────────────────────
 
 def _parse_score(raw: str) -> float:
     match = re.search(r"\b(?:0(?:\.\d+)?|1(?:\.0+)?)\b", raw)
     return max(0.0, min(float(match.group(0)), 1.0)) if match else 0.0
 
 
+# ── Relevance grader ──────────────────────────────────────────────────────────
 
 def _build_relevance_prompt(question: str, rewritten: str, docs: list[Document]) -> str:
     blocks = []
@@ -158,6 +161,7 @@ def should_web_search(score: float) -> bool:
     return score < RELEVANCE_THRESHOLD
 
 
+# ── Evidence verification ─────────────────────────────────────────────────────
 
 def _build_verification_prompt(question, plan, context, sources) -> str:
     source_lines = "\n".join(f"* {s}" for s in sources)
@@ -222,6 +226,7 @@ def verify_evidence(
     return result
 
 
+# ── RAGAS-style metrics (LLM-based proxies) ───────────────────────────────────
 
 def compute_ragas_metrics(
     llm,

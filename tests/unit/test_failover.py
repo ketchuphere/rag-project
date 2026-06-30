@@ -2,7 +2,8 @@
 Unit tests – FailoverLLMWrapper N-provider chain behaviour.
 Updated for the new list[_Provider] constructor.
 """
-import sys, os
+import sys
+import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 import logging
@@ -15,7 +16,8 @@ logging.basicConfig(level=logging.WARNING)
 def _make(name, fail=False, msg=""):
     class M:
         def invoke(self, p, **kw):
-            if fail: raise Exception(msg)
+            if fail:
+                raise Exception(msg)
             return AIMessage(content=f"Hello from {name}!")
     return _Provider(name, M())
 

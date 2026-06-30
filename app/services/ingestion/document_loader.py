@@ -14,6 +14,7 @@ from pathlib import Path
 from langchain_core.documents import Document
 
 
+# ── Format adapters ───────────────────────────────────────────────────────────
 
 def _load_docx(file) -> list[Document]:
     """Extract paragraphs from a .docx file using python-docx."""
@@ -101,6 +102,8 @@ def _load_text(file) -> list[Document]:
     name = getattr(file, "name", "file.txt")
     return [Document(page_content=raw.strip(), metadata={"source": name, "page": 1, "format": "text"})]
 
+
+# ── Loader registry ───────────────────────────────────────────────────────────
 
 _LOADERS: dict[str, callable] = {
     ".docx": _load_docx,

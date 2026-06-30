@@ -16,7 +16,6 @@ Future improvements:
 import json
 import re
 from hashlib import sha256
-from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from langchain_core.documents import Document
@@ -35,6 +34,7 @@ from app.services.retrieval.retriever import retrieve, retrieve_for_research
 from app.services.evaluation.grader import grade_relevance, should_web_search, verify_evidence
 
 
+# ── Memory helpers ────────────────────────────────────────────────────────────
 
 def _trim(messages: list[dict]) -> list[dict]:
     return messages[-MAX_MEMORY_MESSAGES:]
@@ -52,6 +52,7 @@ def _format_memory(messages: list[dict]) -> str:
     return "\n".join(f"{m['role'].title()}: {m['message']}" for m in _trim(messages))
 
 
+# ── Deduplication helpers ─────────────────────────────────────────────────────
 
 def _fingerprint(text: str) -> str:
     return sha256(re.sub(r"\s+", " ", text.strip().lower()).encode()).hexdigest()
@@ -68,6 +69,7 @@ def _dedup_sources(sources: list[str]) -> list[str]:
     return out
 
 
+# ── Context fusion helpers ────────────────────────────────────────────────────
 
 def _pdf_items(docs: list[Document]) -> list[dict]:
     items = []
@@ -121,6 +123,7 @@ def _fuse(pdf_docs: list[Document], web_results: list[dict]) -> tuple[str, list[
     return context, _dedup_sources(sources), evidence
 
 
+# ── Tavily web search ─────────────────────────────────────────────────────────
 
 def _tavily_search(query: str, max_results: int) -> list[dict]:
     from app.config.settings import TAVILY_API_KEY
@@ -150,6 +153,7 @@ def _tavily_search(query: str, max_results: int) -> list[dict]:
     ]
 
 
+# ── Answer formatting ─────────────────────────────────────────────────────────
 
 def _strip_sources_section(text: str) -> str:
     return re.split(r"\n\s*(?:4\.\s*)?Sources\s*:?\s*", text, maxsplit=1, flags=re.IGNORECASE)[0].strip()
@@ -173,6 +177,9 @@ def _format_report(report: str, sources: list[str]) -> str:
     return f"{clean}\n\n4. Sources\n\n{source_lines}"
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# LangGraph Nodes
+# ══════════════════════════════════════════════════════════════════════════════
 
 def initialize_memory(state: RAGState) -> RAGState:
     memory = state["conversation_memory"] or state["chat_history"]
@@ -261,6 +268,7 @@ def update_memory(state: RAGState) -> RAGState:
     return {**state, "conversation_memory": memory, "memory_context": _format_memory(memory)}
 
 
+# ── Deep Research nodes ───────────────────────────────────────────────────────
 
 def research_agent(state: RAGState) -> RAGState:
     # Create plan on first iteration

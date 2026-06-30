@@ -3,12 +3,12 @@ Generation service — LLM factory with advanced failover, async support,
 latency-aware routing, and optional LiteLLM backend.
 
 Improvements implemented:
-    Multi-provider N-fallback chain: Gemini → Groq → Anthropic Claude
+  ✅ Multi-provider N-fallback chain: Gemini → Groq → Anthropic Claude
      (any number of providers, not just two).
-    Async ainvoke(): non-blocking invocation for parallel LangGraph branches.
-     Latency-aware routing: exponential moving average (EMA) tracks P50 latency
+  ✅ Async ainvoke(): non-blocking invocation for parallel LangGraph branches.
+  ✅ Latency-aware routing: exponential moving average (EMA) tracks P50 latency
      per provider; the fastest healthy provider is tried first.
-     LiteLLM integration: optional unified backend — add models via config only.
+  ✅ LiteLLM integration: optional unified backend — add models via config only.
 """
 
 from __future__ import annotations
@@ -30,6 +30,7 @@ from app.config.settings import (
 
 logger = logging.getLogger(__name__)
 
+# ── Latency tracker ───────────────────────────────────────────────────────────
 
 class _LatencyTracker:
     """Exponential moving average latency tracker per provider."""
@@ -55,6 +56,7 @@ class _LatencyTracker:
 _tracker = _LatencyTracker()
 
 
+# ── Provider descriptor ───────────────────────────────────────────────────────
 
 class _Provider:
     def __init__(self, name: str, llm: Any):
@@ -77,6 +79,7 @@ class _Provider:
         return result
 
 
+# ── N-provider failover wrapper ───────────────────────────────────────────────
 
 class FailoverLLMWrapper:
     """
@@ -130,7 +133,6 @@ class FailoverLLMWrapper:
 
     async def ainvoke(self, prompt, **kwargs):
         """Async invoke — non-blocking, suitable for parallel LangGraph branches."""
-        last_exc: Exception | None = None
         for provider in self._ordered():
             try:
                 self.current_provider = provider.name
@@ -139,7 +141,6 @@ class FailoverLLMWrapper:
             except Exception as exc:
                 if self._is_quota(exc):
                     self.fallback_count += 1
-                    last_exc = exc
                     logger.warning("Async: provider %s quota hit — trying next.", provider.name)
                     continue
                 raise
@@ -153,6 +154,7 @@ class FailoverLLMWrapper:
         return {name: _tracker.p50(name) for name in self._provider_names}
 
 
+# ── LiteLLM backend (optional) ───────────────────────────────────────────────
 
 class _LiteLLMProvider:
     """
@@ -193,6 +195,7 @@ class _LiteLLMProvider:
         return AIMessage(content=resp.choices[0].message.content or "")
 
 
+# ── Factory functions ─────────────────────────────────────────────────────────
 
 def get_llm(use_litellm: bool = False) -> FailoverLLMWrapper:
     """
@@ -227,6 +230,7 @@ def get_llm(use_litellm: bool = False) -> FailoverLLMWrapper:
             temperature=LLM_TEMPERATURE,
         )
 
+        # Anthropic Claude as third fallback (optional — gracefully skipped if key missing)
         anthropic_providers: list[_Provider] = []
         try:
             from langchain_anthropic import ChatAnthropic

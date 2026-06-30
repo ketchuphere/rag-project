@@ -15,9 +15,9 @@ from functools import lru_cache
 from app.config.settings import EMBEDDING_MODEL
 
 try:
-    from langchain_huggingface import HuggingFaceEmbeddings  #preferred (non-deprecated)
+    from langchain_huggingface import HuggingFaceEmbeddings  # preferred (non-deprecated)
 except ImportError:
-    from langchain_community.embeddings import HuggingFaceEmbeddings  #fallback
+    from langchain_community.embeddings import HuggingFaceEmbeddings  # fallback
 
 
 @lru_cache(maxsize=1)
