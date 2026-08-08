@@ -1,4 +1,3 @@
-# Core RAG pipeline
 langchain
 langchain-core
 langchain-community
@@ -8,39 +7,26 @@ langchain-groq
 langchain-huggingface
 langgraph
 
-# Vector store
+#Vector database
 chromadb
 
-# Embeddings
+#Embeddings
 sentence-transformers
 
-# PDF ingestion
+#PDF ingestion
 PyPDF2
 
-# Multi-format ingestion (optional but recommended)
+#Multi-format ingestion (optional but recommended)
 python-docx
 beautifulsoup4
 
-# FastAPI backend
+#FastAPI backend
 fastapi
 uvicorn[standard]
 
-# Env / config
+#Env / config
 python-dotenv
 
-# Evaluation
-# ragas  # optional: pip install ragas for full RAGAS suite
-
-# LiteLLM (optional unified provider backend)
-# litellm
-
-# Anthropic third-fallback (optional)
-# langchain-anthropic
-
-# Redis checkpointing (optional)
-# langgraph-checkpoint-redis
-
-# NLTK for semantic chunking
 nltk
 
 # Testing

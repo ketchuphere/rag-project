@@ -1,9 +1,9 @@
 # CI/CD Pipeline — runs on every push and PR to main
 # Improvements implemented:
-#   ✅ Lint with ruff
-#   ✅ Unit + integration tests with pytest
-#   ✅ Docker image build verification
-#   ✅ Auto-deploy to staging on merge to main (placeholder step)
+#    Lint with ruff
+#    Unit + integration tests with pytest
+#    Docker image build verification
+#    Auto-deploy to staging on merge to main (placeholder step)
 
 name: CI
 
@@ -83,3 +83,5 @@ jobs:
           docker push ghcr.io/${{ github.repository }}:latest
       - name: Deploy (placeholder — replace with your deployment command)
         run: echo "Deploy ghcr.io/${{ github.repository }}:latest to staging"
+
+        
